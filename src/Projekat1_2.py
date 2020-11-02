@@ -7,7 +7,7 @@ import threading
 from numpy.core.defchararray import count
 
 
-iterations = 3
+iterations = 15
 n = 20
 size = n**2
 steps = np.zeros((iterations,n,n),dtype=bool)
@@ -90,14 +90,23 @@ def executeNode(i,j,initState):
     iteration = 1
     while iteration < iterations:
         for (ii,jj) in neighbors:
-            queues[ii][jj].put_nowait(state)
+            queues[ii][jj].put_nowait((state,iteration))
 
         aliveNeighbors = 0
+        cachedneighbors = []
+
         for (ii,jj) in neighbors:
-            neighborValue = queues[i][j].get()
-            if(neighborValue):
-              aliveNeighbors+=1
-            queues[i][j].task_done()
+            while True:
+              (neighborValue,neighborIteration) = queues[i][j].get()
+              if(iteration != neighborIteration):
+                cachedneighbors.append((neighborValue,neighborIteration))
+                continue
+              if(neighborValue):
+                aliveNeighbors+=1
+              break
+
+        for cachedneighbor in cachedneighbors:
+          queues[i][j].put_nowait(cachedneighbor)
         if aliveNeighbors == 3 or (aliveNeighbors == 2 and state):
             state = True
         else:
@@ -105,15 +114,6 @@ def executeNode(i,j,initState):
 
         steps[iteration][i][j] = state
         iteration += 1
-        time.sleep(0.1)
-        
-        for ii in range(0,n): 
-          for jj in range(0,n):
-            queues[ii][jj].join()
-        lock.acquire()
-        counter+=1
-        print(counter)
-        lock.release()
 
 
 for i in range(0,table.shape[0]):
@@ -131,5 +131,5 @@ for i in range(0,table.shape[0]):
   for j in range(0,table.shape[1]):
     threads[i][j].join()
 
-printTable(steps[1])
+printTable(steps[iterations-1])
 print("Completed")
