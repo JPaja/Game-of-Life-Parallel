@@ -1,5 +1,7 @@
 from threading import Condition, Event, Lock, Semaphore, Thread
+from queue import Queue, Empty
 import numpy as np
+import time
 import threading
 
 from numpy.core.defchararray import count
@@ -20,13 +22,7 @@ table[2][2] = True
 steps[0] = table
 
 threads = np.zeros(table.shape,dtype=Thread)
-brojaciSuseda = np.zeros(table.shape,dtype=int)
-brojaciSusedaLocks = np.zeros(table.shape,dtype=object)
-semafori = np.zeros(table.shape,dtype=Semaphore)
-kondicijal = Condition()
-lock = Lock()
-brojac = 0
-
+queues = np.zeros(table.shape,dtype=Queue)
 
 def printTable(table):
   for i in range(0,table.shape[0]):
@@ -81,60 +77,50 @@ def gameOfLife(table):
         newTable[i][j] = True
   return newTable
 
-def executeNode(i,j):
-    global table
+
+lock = Lock()
+counter = 0
+def executeNode(i,j,initState):
     global iterations
-    global brojaciSuseda
-    global semafori
-    global brojaciSusedaLocks
-    global lock
-    global brojac
-    global size
+    global queues
+    global counter
+    global n
+    state = initState
     neighbors = getValidNeighborIndexes(i,j)
-    iteration = 0
+    iteration = 1
     while iteration < iterations:
+        for (ii,jj) in neighbors:
+            queues[ii][jj].put_nowait(state)
 
         aliveNeighbors = 0
         for (ii,jj) in neighbors:
-            brojaciSusedaLocks[ii][jj].acquire()
-            if table[ii][jj]:
-                aliveNeighbors += 1
-            brojaciSuseda[ii][jj]+= 1
-            if(brojaciSuseda[ii][jj] == len(getValidNeighborIndexes(ii,jj))): #8): u slucaju ivica ne racunamo ne postojece nodove
-                brojaciSuseda[ii][jj] = 0
-                semafori[ii][jj].release()
-            brojaciSusedaLocks[ii][jj].release()
-
-        semafori[i][j].acquire()
-        
-        state = table[i][j]
-        table[i][j] = False
+            neighborValue = queues[i][j].get()
+            if(neighborValue):
+              aliveNeighbors+=1
+            queues[i][j].task_done()
         if aliveNeighbors == 3 or (aliveNeighbors == 2 and state):
-            table[i][j] = True
-        steps[iteration][i][j] = table[i][j]
-        iteration += 1
-        lock.acquire()
-        brojac+= 1
-        kondicijal.acquire()
-        if(brojac == size):
-          brojac = 0
-          print()
-          print()
-          printTable(table)
-          kondicijal.notifyAll()
-          lock.release()
+            state = True
         else:
-          lock.release()
-          kondicijal.wait()
-        kondicijal.release()
+            state = False
+
+        steps[iteration][i][j] = state
+        iteration += 1
+        time.sleep(0.1)
+        
+        for ii in range(0,n): 
+          for jj in range(0,n):
+            queues[ii][jj].join()
+        lock.acquire()
+        counter+=1
+        print(counter)
+        lock.release()
 
 
 for i in range(0,table.shape[0]):
   for j in range(0,table.shape[1]):
-    t = Thread(target=executeNode, args=(i,j))
+    t = Thread(target=executeNode, args=(i,j,table[i][j]))
     threads[i][j] = t
-    brojaciSusedaLocks[i][j] = Lock()
-    semafori[i][j] = Semaphore(0)
+    queues[i][j] = Queue()
 
 
 for i in range(0,table.shape[0]):
@@ -145,5 +131,5 @@ for i in range(0,table.shape[0]):
   for j in range(0,table.shape[1]):
     threads[i][j].join()
 
-printTable(table)
+printTable(steps[1])
 print("Completed")
