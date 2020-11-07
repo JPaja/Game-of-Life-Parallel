@@ -7,7 +7,6 @@ import time
 iterations = 5
 n = 10
 
-
 def getNeighborIndexes(i, j):
   neighbors = []
   for ii in range(-1,2):

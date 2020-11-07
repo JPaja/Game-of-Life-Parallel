@@ -36,50 +36,14 @@ def printTable(table):
 
 
 def getNeighborIndexes(i, j):
-  neighbors = []
-  for ii in range(-1,2):
-    for jj in range(-1,2):
-      if(ii == 0 and jj == 0):
-        continue
-      neighbors.append((i+ii,j+jj))
-  return neighbors
-
-def getValidNeighborIndexes(i, j):
     neighbors = []
     for ii in range(-1,2):
         for jj in range(-1,2):
             if(ii == 0 and jj == 0):
                 continue
-            # if(i+ii < 0 or i+ii >= table.shape[0]):
-            #     continue
-            # if(j+jj < 0 or j+jj >= table.shape[1]):
-            #     continue
-            # neighbors.append((i+ii,j+jj))
             neighbors.append(((i+ii)%n, (j+jj)%n))
     return neighbors
 
-def getNeighbors(table, i, j):
-  neighbors = []
-  for neighbor in getNeighborIndexes(i,j):
-    ii = neighbor[0]
-    jj = neighbor[1]
-    if(ii < 0 or ii >= table.shape[0]):
-      neighbors.append(False)
-      continue
-    if(jj < 0 or jj >= table.shape[1]):
-      neighbors.append(False)
-      continue
-    neighbors.append(table[ii][jj])
-  return neighbors
-
-def gameOfLife(table):
-  newTable = np.zeros(table.shape,dtype=bool)
-  for i in range(0,table.shape[0]):
-    for j in range(0,table.shape[1]):
-      aliveNeighbors = sum(getNeighbors(table,i,j))
-      if aliveNeighbors == 3 or (aliveNeighbors == 2 and table[i][j]):
-        newTable[i][j] = True
-  return newTable
 
 def executeNode(i,j):
     global table
@@ -90,7 +54,7 @@ def executeNode(i,j):
     global lock
     global brojac
     global size
-    neighbors = getValidNeighborIndexes(i,j)
+    neighbors = getNeighborIndexes(i,j)
     iteration = 0
     while iteration < iterations:
 
@@ -99,8 +63,8 @@ def executeNode(i,j):
             brojaciSusedaLocks[ii][jj].acquire()
             if table[ii][jj]:
                 aliveNeighbors += 1
-            brojaciSuseda[ii][jj]+= 1
-            if(brojaciSuseda[ii][jj] == len(getValidNeighborIndexes(ii,jj))): #8): u slucaju ivica ne racunamo ne postojece nodove
+            brojaciSuseda[ii][jj]+= 1 
+            if(brojaciSuseda[ii][jj] == 8): #u slucaju ivica ne racunamo ne postojece nodove
                 brojaciSuseda[ii][jj] = 0
                 semafori[ii][jj].release()
             brojaciSusedaLocks[ii][jj].release()
@@ -118,9 +82,6 @@ def executeNode(i,j):
         kondicijal.acquire()
         if(brojac == size):
           brojac = 0
-          print()
-          print()
-          printTable(table)
           kondicijal.notifyAll()
           lock.release()
         else:

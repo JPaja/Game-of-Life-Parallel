@@ -24,18 +24,18 @@ def getNeighborIndexes(i, j):
   return neighbors
 
 def executeNode(nodes,table):
-    results = {}
+    results = []
     for (i,j) in nodes:
       neighbors = getNeighborIndexes(i,j)
       aliveNeighbors = 0
       for (ii,jj) in neighbors:
         if table[ii][jj]:
               aliveNeighbors += 1
-        if aliveNeighbors == 3 or (aliveNeighbors == 2 and table[i][j]):
-            state = 1
-        else:
-            state = 0
-        results[(i,j)] = state
+      if aliveNeighbors == 3 or (aliveNeighbors == 2 and table[i][j]):
+          state = 1
+      else:
+          state = 0
+      results.append((i,j,state))
     return results
 
 #https://stackoverflow.com/a/2130035
@@ -73,8 +73,8 @@ if __name__ == "__main__":
           results.append(pool.apply(executeNode,args=(nodeChunk,table)))
 
         for result in results:
-          for (i,j) in result.keys():
-            table[i,j] = result[(i,j)]
+          for (i,j,state) in result:
+            table[i,j] = state
         steps.append(table.copy())
 
     pool.close()
