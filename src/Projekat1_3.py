@@ -92,4 +92,4 @@ if __name__ == "__main__":
         j = int(index % n)
         steps[iteration][i][j] = tableData[index]
     
-    print(steps[iterations-1])
+    print(steps)
