@@ -70,9 +70,10 @@ if __name__ == "__main__":
     for iteration in range(iterations):
         results = []
         for nodeChunk in nodes:
-          results.append(pool.apply(executeNode,args=(nodeChunk,table)))
+          results.append(pool.apply_async(executeNode,args=(nodeChunk,table)))
 
-        for result in results:
+        for resultAsync in results:
+          result = resultAsync.get()
           for (i,j,state) in result:
             table[i,j] = state
         steps.append(table.copy())
